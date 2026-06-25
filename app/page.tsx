@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Priority = "alta" | "media" | "baja";
 type Category = "Actitud" | "Acción" | "Salida" | "Comunicación" | "Otra";
@@ -14,14 +15,14 @@ type Item = {
   createdAt: number;
 };
 
-const PRIORITY_META: Record<Priority, { label: string; color: string; ring: string }> = {
-  alta: { label: "Importante", color: "var(--red-priority)", ring: "rgba(193,85,74,0.35)" },
-  media: { label: "Pendiente", color: "var(--gold)", ring: "rgba(207,154,78,0.35)" },
-  baja: { label: "Con calma", color: "var(--sage)", ring: "rgba(124,148,115,0.35)" },
+const PRIORITY_META: Record<Priority, { label: string; fg: string; soft: string }> = {
+  alta: { label: "Importante", fg: "var(--red)", soft: "var(--red-soft)" },
+  media: { label: "Pendiente", fg: "var(--amber)", soft: "var(--amber-soft)" },
+  baja: { label: "Con calma", fg: "var(--green)", soft: "var(--green-soft)" },
 };
 
 const CATEGORIES: Category[] = ["Actitud", "Acción", "Salida", "Comunicación", "Otra"];
-const STORAGE_KEY = "nosotros-items-v1";
+const STORAGE_KEY = "nosotros-items-v2";
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -80,54 +81,62 @@ export default function Home() {
     });
 
   return (
-    <main className="min-h-screen px-5 py-10 sm:py-16">
-      <div className="mx-auto max-w-2xl">
-        <header className="mb-10 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-[var(--rose)] mb-3">
-            un espacio para los dos
-          </p>
-          <h1 className="font-display text-5xl sm:text-6xl font-semibold leading-tight">
+    <main className="min-h-screen px-5 py-12 sm:py-20">
+      <div className="mx-auto max-w-xl">
+        {/* Header */}
+        <header className="mb-10">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
             Nosotros
           </h1>
-          <p className="mt-3 text-[15px] text-[var(--bone)]/70 max-w-md mx-auto">
-            Las actitudes, acciones y salidas que queremos cuidar — anotadas,
-            priorizadas y celebradas cuando las logramos.
+          <p className="mt-2 text-[15px] text-[var(--muted)]">
+            Lo que queremos cuidar y mejorar, juntos.
           </p>
         </header>
 
+        {/* Progress */}
         {total > 0 && (
-          <div className="mb-8 rounded-2xl border border-[var(--line)] bg-[var(--plum)]/60 p-5">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="font-display text-2xl">{progress}%</span>
-              <span className="text-xs text-[var(--bone)]/60">
-                {doneCount} de {total} logrado{doneCount === 1 ? "" : "s"}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-3xl bg-[var(--surface)] p-5"
+            style={{ boxShadow: "var(--shadow)" }}
+          >
+            <div className="flex items-baseline justify-between mb-3">
+              <span className="font-display text-2xl font-bold">{progress}%</span>
+              <span className="text-sm text-[var(--muted)]">
+                {doneCount} de {total} lograd{doneCount === 1 ? "o" : "os"}
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-[var(--plum-deep)] overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${progress}%`,
-                  background: "linear-gradient(90deg, var(--rose), var(--gold))",
-                }}
+            <div className="h-1.5 w-full rounded-full bg-[var(--border)] overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "var(--accent)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
               />
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <div className="mb-10 rounded-2xl border border-[var(--line)] bg-[var(--plum)]/60 p-5">
+        {/* Add form */}
+        <div
+          className="mb-8 rounded-3xl bg-[var(--surface)] p-5"
+          style={{ boxShadow: "var(--shadow)" }}
+        >
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
-            placeholder="¿Qué quieren cuidar o cambiar juntos?"
-            className="w-full bg-transparent border-b border-[var(--line)] pb-3 text-[15px] placeholder:text-[var(--bone)]/40 focus:outline-none focus:border-[var(--rose)] transition-colors"
+            placeholder="¿Qué quieren cuidar o cambiar?"
+            className="w-full bg-transparent text-[15px] placeholder:text-[var(--muted)] focus:outline-none"
           />
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="my-4 h-px bg-[var(--border)]" />
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as Category)}
-              className="rounded-full bg-[var(--plum-deep)] border border-[var(--line)] px-4 py-2 text-sm focus:outline-none"
+              className="rounded-full bg-[var(--bg)] border border-[var(--border)] px-3.5 py-2 text-sm text-[var(--ink)] cursor-pointer"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -136,45 +145,48 @@ export default function Home() {
               ))}
             </select>
 
-            <div className="flex gap-1.5 rounded-full bg-[var(--plum-deep)] border border-[var(--line)] p-1">
+            <div className="flex gap-1 rounded-full bg-[var(--bg)] border border-[var(--border)] p-1">
               {(["alta", "media", "baja"] as Priority[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPriority(p)}
-                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors"
+                  className="relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
                   style={{
-                    background: priority === p ? PRIORITY_META[p].ring : "transparent",
-                    color: "var(--bone)",
+                    background: priority === p ? PRIORITY_META[p].soft : "transparent",
+                    color: priority === p ? PRIORITY_META[p].fg : "var(--muted)",
                   }}
                 >
                   <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ background: PRIORITY_META[p].color }}
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: PRIORITY_META[p].fg }}
                   />
                   {PRIORITY_META[p].label}
                 </button>
               ))}
             </div>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={addItem}
-              className="ml-auto rounded-full px-5 py-2 text-sm font-medium transition-transform hover:scale-[1.03]"
-              style={{ background: "var(--rose)", color: "var(--plum-deep)" }}
+              className="ml-auto rounded-full px-5 py-2 text-sm font-semibold text-white"
+              style={{ background: "var(--accent)" }}
             >
               Agregar
-            </button>
+            </motion.button>
           </div>
         </div>
 
-        <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        {/* Filter */}
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {(["todas", "alta", "media", "baja"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="whitespace-nowrap rounded-full border px-4 py-1.5 text-xs transition-colors"
+              className="whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
               style={{
-                borderColor: filter === f ? "var(--rose)" : "var(--line)",
-                color: "var(--bone)",
+                background: filter === f ? "var(--ink)" : "var(--surface)",
+                color: filter === f ? "white" : "var(--muted)",
+                boxShadow: filter === f ? "none" : "var(--shadow)",
               }}
             >
               {f === "todas" ? "Todas" : PRIORITY_META[f as Priority].label}
@@ -182,60 +194,74 @@ export default function Home() {
           ))}
         </div>
 
-        <ul className="space-y-3">
-          {visible.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--bone)]/50">
-              Todavía no hay nada aquí. Escriban lo primero que quieran cuidar juntos.
-            </li>
-          )}
-          {visible.map((item) => (
-            <li
-              key={item.id}
-              className="group relative flex items-start gap-3 rounded-2xl border border-[var(--line)] bg-[var(--plum)]/50 p-4 pl-5 transition-opacity"
-              style={{ opacity: item.done ? 0.5 : 1 }}
-            >
-              <span
-                className="absolute left-0 top-3 bottom-3 w-1 rounded-full"
-                style={{ background: PRIORITY_META[item.priority].color }}
-              />
-              <button
-                onClick={() => toggleDone(item.id)}
-                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
-                style={{
-                  borderColor: PRIORITY_META[item.priority].color,
-                  background: item.done ? PRIORITY_META[item.priority].color : "transparent",
-                }}
-                aria-label="Marcar como logrado"
+        {/* List */}
+        <ul className="space-y-2.5">
+          <AnimatePresence initial={false}>
+            {visible.length === 0 && (
+              <motion.li
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="rounded-3xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]"
               >
-                {item.done && (
-                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6.5L4.5 9L10 3" stroke="var(--plum-deep)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                Todavía no hay nada aquí. Escriban lo primero que quieran cuidar.
+              </motion.li>
+            )}
+            {visible.map((item) => (
+              <motion.li
+                key={item.id}
+                layout
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: item.done ? 0.55 : 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                className="group flex items-center gap-3 rounded-2xl bg-[var(--surface)] p-4"
+                style={{ boxShadow: "var(--shadow)" }}
+                whileHover={{ boxShadow: "var(--shadow-hover)" }}
+              >
+                <button
+                  onClick={() => toggleDone(item.id)}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
+                  style={{
+                    background: item.done ? PRIORITY_META[item.priority].fg : PRIORITY_META[item.priority].soft,
+                  }}
+                  aria-label="Marcar como logrado"
+                >
+                  {item.done && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[15px] leading-snug ${item.done ? "line-through" : ""}`}>
+                    {item.text}
+                  </p>
+                  <span
+                    className="mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{ background: "var(--bg)", color: "var(--muted)" }}
+                  >
+                    {item.category}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="shrink-0 text-[var(--border)] opacity-0 transition-opacity hover:text-[var(--muted)] group-hover:opacity-100"
+                  aria-label="Eliminar"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                   </svg>
-                )}
-              </button>
-
-              <div className="min-w-0 flex-1">
-                <p className={`text-[15px] leading-snug ${item.done ? "line-through" : ""}`}>
-                  {item.text}
-                </p>
-                <span className="mt-1 inline-block text-xs text-[var(--bone)]/50">
-                  {item.category}
-                </span>
-              </div>
-
-              <button
-                onClick={() => removeItem(item.id)}
-                className="text-[var(--bone)]/30 opacity-0 transition-opacity hover:text-[var(--bone)]/70 group-hover:opacity-100"
-                aria-label="Eliminar"
-              >
-                ✕
-              </button>
-            </li>
-          ))}
+                </button>
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
 
-        <footer className="mt-14 text-center text-xs text-[var(--bone)]/35">
-          Guardado solo en este dispositivo · hecho con cariño para ustedes dos
+        <footer className="mt-12 text-center text-xs text-[var(--muted)]">
+          Guardado solo en este dispositivo
         </footer>
       </div>
     </main>

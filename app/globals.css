@@ -1,51 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  --plum: #2c1f2b;
-  --plum-deep: #1f1620;
-  --bone: #faf4ec;
-  --rose: #d98c8f;
-  --gold: #cf9a4e;
-  --sage: #7c9473;
-  --red-priority: #c1554a;
-  --line: rgba(250, 244, 236, 0.12);
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --ink: #18181b;
+  --muted: #8a8a93;
+  --border: #ececef;
+  --accent: #6d5bff;
+  --accent-soft: #efebff;
+  --red: #ff5d5d;
+  --red-soft: #ffe9e9;
+  --amber: #ffb648;
+  --amber-soft: #fff3df;
+  --green: #2bb673;
+  --green-soft: #e3f7ec;
+  --shadow: 0 1px 2px rgba(20,20,30,0.04), 0 10px 30px -12px rgba(20,20,30,0.10);
+  --shadow-hover: 0 4px 10px rgba(20,20,30,0.06), 0 18px 40px -14px rgba(20,20,30,0.16);
 }
 
 * { box-sizing: border-box; }
 
-body {
-  background: var(--plum-deep);
-  color: var(--bone);
-  font-family: 'Inter', sans-serif;
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .font-display {
-  font-family: 'Fraunces', serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
 }
 
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+::selection {
+  background: var(--accent-soft);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+input:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
