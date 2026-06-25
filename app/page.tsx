@@ -115,35 +115,51 @@ export default function Home() {
     });
 
   return (
-    <main className="min-h-screen px-5 py-12 sm:py-20">
+    <main
+      className="min-h-screen px-4 sm:px-5 py-8 sm:py-20"
+      style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}
+    >
       <div className="mx-auto max-w-xl">
         {/* Header */}
-        <header className="mb-10 flex items-start justify-between">
+        <motion.header
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="mb-8 sm:mb-10 flex items-start justify-between gap-3"
+        >
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
               Nosotros
             </h1>
-            <p className="mt-2 text-[15px] text-[var(--muted)]">
+            <p className="mt-2 text-[14px] sm:text-[15px] text-[var(--muted)]">
               Lo que queremos cuidar y mejorar, juntos.
             </p>
           </div>
-          {loaded && (
-            <span
-              className="mt-1.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0"
-              style={{
-                background: synced === "online" ? "#e3f7ec" : "#fff3df",
-                color: synced === "online" ? "#2bb673" : "#c98a1f",
-              }}
-              title={synced === "online" ? "Sincronizado entre dispositivos" : "Guardado solo en este dispositivo"}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: synced === "online" ? "#2bb673" : "#ffb648" }}
-              />
-              {synced === "online" ? "Sincronizado" : "Solo local"}
-            </span>
-          )}
-        </header>
+          <AnimatePresence>
+            {loaded && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-1.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0"
+                style={{
+                  background: synced === "online" ? "#e3f7ec" : "#fff3df",
+                  color: synced === "online" ? "#2bb673" : "#c98a1f",
+                }}
+                title={synced === "online" ? "Sincronizado entre dispositivos" : "Guardado solo en este dispositivo"}
+              >
+                <motion.span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: synced === "online" ? "#2bb673" : "#ffb648" }}
+                  animate={synced === "online" ? { scale: [1, 1.3, 1] } : {}}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <span className="hidden sm:inline">
+                  {synced === "online" ? "Sincronizado" : "Solo local"}
+                </span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.header>
 
         {/* Progress */}
         {total > 0 && (
@@ -184,25 +200,27 @@ export default function Home() {
             className="w-full bg-transparent text-[15px] placeholder:text-[var(--muted)] focus:outline-none"
           />
           <div className="my-4 h-px bg-[var(--border)]" />
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as Category)}
-              className="rounded-full bg-[var(--bg)] border border-[var(--border)] px-3.5 py-2 text-sm text-[var(--ink)] cursor-pointer"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+            <div className="flex gap-2">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                className="flex-1 sm:flex-none rounded-full bg-[var(--bg)] border border-[var(--border)] px-3.5 py-2.5 sm:py-2 text-sm text-[var(--ink)] cursor-pointer"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <div className="flex gap-1 rounded-full bg-[var(--bg)] border border-[var(--border)] p-1">
+            <div className="flex gap-1 rounded-full bg-[var(--bg)] border border-[var(--border)] p-1 overflow-x-auto">
               {PRIORITY_ORDER.map((p) => (
                 <button
                   key={p}
                   onClick={() => setPriority(p)}
-                  className="relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+                  className="relative flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 sm:py-1.5 text-xs font-medium transition-colors"
                   style={{
                     background: priority === p ? PRIORITY_META[p].soft : "transparent",
                     color: priority === p ? PRIORITY_META[p].fg : "var(--muted)",
@@ -219,8 +237,9 @@ export default function Home() {
 
             <motion.button
               whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
               onClick={addItem}
-              className="ml-auto rounded-full px-5 py-2 text-sm font-semibold text-white"
+              className="sm:ml-auto rounded-full px-5 py-2.5 sm:py-2 text-sm font-semibold text-white"
               style={{ background: "var(--accent)" }}
             >
               Agregar
@@ -259,32 +278,43 @@ export default function Home() {
                 Todavía no hay nada aquí. Escriban lo primero que quieran cuidar.
               </motion.li>
             )}
-            {visible.map((item) => (
+            {visible.map((item, index) => (
               <motion.li
                 key={item.id}
                 layout
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                 animate={{ opacity: item.done ? 0.55 : 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-                transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                exit={{ opacity: 0, scale: 0.95, x: -8, transition: { duration: 0.15 } }}
+                transition={{ type: "spring", stiffness: 350, damping: 28, delay: index * 0.04 }}
                 className="group flex items-center gap-3 rounded-2xl bg-[var(--surface)] p-4"
                 style={{ boxShadow: "var(--shadow)" }}
                 whileHover={{ boxShadow: "var(--shadow-hover)" }}
               >
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.85 }}
                   onClick={() => toggleDone(item.id)}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
+                  className="flex h-7 w-7 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full transition-colors"
                   style={{
                     background: item.done ? PRIORITY_META[item.priority].fg : PRIORITY_META[item.priority].soft,
                   }}
                   aria-label="Marcar como logrado"
                 >
-                  {item.done && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
+                  <AnimatePresence>
+                    {item.done && (
+                      <motion.svg
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                      >
+                        <path d="M2 6.5L4.5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
 
                 <div className="min-w-0 flex-1">
                   <p className={`text-[15px] leading-snug ${item.done ? "line-through" : ""}`}>
@@ -298,15 +328,16 @@ export default function Home() {
                   </span>
                 </div>
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.85 }}
                   onClick={() => removeItem(item.id)}
-                  className="shrink-0 text-[var(--border)] opacity-0 transition-opacity hover:text-[var(--muted)] group-hover:opacity-100"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)]/60 transition-colors opacity-100 sm:opacity-0 hover:bg-[var(--bg)] hover:text-[var(--red)] sm:group-hover:opacity-100"
                   aria-label="Eliminar"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                   </svg>
-                </button>
+                </motion.button>
               </motion.li>
             ))}
           </AnimatePresence>
