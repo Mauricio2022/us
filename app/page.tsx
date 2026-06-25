@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-type Priority = "alta" | "media" | "baja";
+type Priority = "importante" | "moderado" | "bajo" | "opcional";
 type Category = "Actitud" | "Acción" | "Salida" | "Comunicación" | "Otra";
 
 type Item = {
@@ -16,13 +16,15 @@ type Item = {
 };
 
 const PRIORITY_META: Record<Priority, { label: string; fg: string; soft: string }> = {
-  alta: { label: "Importante", fg: "var(--red)", soft: "var(--red-soft)" },
-  media: { label: "Pendiente", fg: "var(--amber)", soft: "var(--amber-soft)" },
-  baja: { label: "Con calma", fg: "var(--green)", soft: "var(--green-soft)" },
+  importante: { label: "Importante", fg: "#ff5d5d", soft: "#ffe9e9" },
+  moderado: { label: "Moderado", fg: "#ffb648", soft: "#fff3df" },
+  bajo: { label: "Bajo", fg: "#2bb673", soft: "#e3f7ec" },
+  opcional: { label: "Opcional", fg: "#6d8aff", soft: "#eaefff" },
 };
 
+const PRIORITY_ORDER: Priority[] = ["importante", "moderado", "bajo", "opcional"];
 const CATEGORIES: Category[] = ["Actitud", "Acción", "Salida", "Comunicación", "Otra"];
-const STORAGE_KEY = "nosotros-items-v2";
+const STORAGE_KEY = "nosotros-items-v3";
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -31,24 +33,57 @@ function uid() {
 export default function Home() {
   const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [synced, setSynced] = useState<"checking" | "online" | "offline">("checking");
   const [text, setText] = useState("");
   const [category, setCategory] = useState<Category>("Actitud");
-  const [priority, setPriority] = useState<Priority>("media");
+  const [priority, setPriority] = useState<Priority>("moderado");
   const [filter, setFilter] = useState<Priority | "todas">("todas");
+  const firstLoad = useRef(true);
 
+  // Carga inicial: intenta servidor, si no hay, usa localStorage
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    (async () => {
       try {
-        setItems(JSON.parse(raw));
-      } catch {}
-    }
-    setLoaded(true);
+        const res = await fetch("/api/items", { cache: "no-store" });
+        const data = await res.json();
+        if (data.configured) {
+          setSynced("online");
+          if (data.items && data.items.length > 0) {
+            setItems(data.items);
+          } else {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) setItems(JSON.parse(raw));
+          }
+        } else {
+          setSynced("offline");
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) setItems(JSON.parse(raw));
+        }
+      } catch {
+        setSynced("offline");
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) setItems(JSON.parse(raw));
+      }
+      setLoaded(true);
+    })();
   }, []);
 
+  // Guarda en localStorage siempre, y en servidor si está configurado
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, loaded]);
+    if (!loaded) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (firstLoad.current) {
+      firstLoad.current = false;
+      return;
+    }
+    if (synced === "online") {
+      fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      }).catch(() => {});
+    }
+  }, [items, loaded, synced]);
 
   function addItem() {
     const trimmed = text.trim();
@@ -75,22 +110,39 @@ export default function Home() {
   const visible = items
     .filter((i) => filter === "todas" || i.priority === filter)
     .sort((a, b) => {
-      const order: Priority[] = ["alta", "media", "baja"];
       if (a.done !== b.done) return a.done ? 1 : -1;
-      return order.indexOf(a.priority) - order.indexOf(b.priority);
+      return PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
     });
 
   return (
     <main className="min-h-screen px-5 py-12 sm:py-20">
       <div className="mx-auto max-w-xl">
         {/* Header */}
-        <header className="mb-10">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Nosotros
-          </h1>
-          <p className="mt-2 text-[15px] text-[var(--muted)]">
-            Lo que queremos cuidar y mejorar, juntos.
-          </p>
+        <header className="mb-10 flex items-start justify-between">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Nosotros
+            </h1>
+            <p className="mt-2 text-[15px] text-[var(--muted)]">
+              Lo que queremos cuidar y mejorar, juntos.
+            </p>
+          </div>
+          {loaded && (
+            <span
+              className="mt-1.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0"
+              style={{
+                background: synced === "online" ? "#e3f7ec" : "#fff3df",
+                color: synced === "online" ? "#2bb673" : "#c98a1f",
+              }}
+              title={synced === "online" ? "Sincronizado entre dispositivos" : "Guardado solo en este dispositivo"}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: synced === "online" ? "#2bb673" : "#ffb648" }}
+              />
+              {synced === "online" ? "Sincronizado" : "Solo local"}
+            </span>
+          )}
         </header>
 
         {/* Progress */}
@@ -146,7 +198,7 @@ export default function Home() {
             </select>
 
             <div className="flex gap-1 rounded-full bg-[var(--bg)] border border-[var(--border)] p-1">
-              {(["alta", "media", "baja"] as Priority[]).map((p) => (
+              {PRIORITY_ORDER.map((p) => (
                 <button
                   key={p}
                   onClick={() => setPriority(p)}
@@ -178,7 +230,7 @@ export default function Home() {
 
         {/* Filter */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-          {(["todas", "alta", "media", "baja"] as const).map((f) => (
+          {(["todas", ...PRIORITY_ORDER] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -261,7 +313,9 @@ export default function Home() {
         </ul>
 
         <footer className="mt-12 text-center text-xs text-[var(--muted)]">
-          Guardado solo en este dispositivo
+          {synced === "online"
+            ? "Guardado en la nube · visible desde cualquier dispositivo"
+            : "Guardado solo en este dispositivo"}
         </footer>
       </div>
     </main>
