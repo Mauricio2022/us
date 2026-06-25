@@ -39,41 +39,79 @@ export default function Home() {
   const [priority, setPriority] = useState<Priority>("moderado");
   const [filter, setFilter] = useState<Priority | "todas">("todas");
   const firstLoad = useRef(true);
+  const skipNextSave = useRef(false);
+  const itemsRef = useRef<Item[]>([]);
+  itemsRef.current = items;
 
-  // Carga inicial: intenta servidor, si no hay, usa localStorage
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/items", { cache: "no-store" });
-        const data = await res.json();
-        if (data.configured) {
-          setSynced("online");
-          if (data.items && data.items.length > 0) {
-            setItems(data.items);
-          } else {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) setItems(JSON.parse(raw));
-          }
-        } else {
+  // Trae lo último del servidor (usado al cargar, cada pocos segundos, y al volver a la pestaña)
+  async function refreshFromServer(isInitial = false) {
+    try {
+      const res = await fetch("/api/items", { cache: "no-store" });
+      const data = await res.json();
+      if (!data.configured) {
+        if (isInitial) {
           setSynced("offline");
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw) setItems(JSON.parse(raw));
         }
-      } catch {
+        return;
+      }
+      setSynced("online");
+      const serverItems: Item[] = data.items ?? [];
+      if (isInitial && serverItems.length === 0) {
+        // primera carga sin nada en el servidor: usa lo que haya local
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) setItems(JSON.parse(raw));
+        return;
+      }
+      // Evita pisar cambios si el contenido es idéntico (evita parpadeos)
+      if (JSON.stringify(serverItems) !== JSON.stringify(itemsRef.current)) {
+        skipNextSave.current = true;
+        setItems(serverItems);
+      }
+    } catch {
+      if (isInitial) {
         setSynced("offline");
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) setItems(JSON.parse(raw));
       }
+    }
+  }
+
+  // Carga inicial
+  useEffect(() => {
+    (async () => {
+      await refreshFromServer(true);
       setLoaded(true);
     })();
   }, []);
 
-  // Guarda en localStorage siempre, y en servidor si está configurado
+  // Vuelve a consultar el servidor cada 4s, y al volver a la pestaña/app
+  useEffect(() => {
+    if (!loaded) return;
+    const interval = setInterval(() => refreshFromServer(false), 4000);
+    function onFocus() {
+      refreshFromServer(false);
+    }
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loaded]);
+
+  // Guarda en localStorage siempre, y en servidor si el cambio fue local (no si vino del polling)
   useEffect(() => {
     if (!loaded) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     if (firstLoad.current) {
       firstLoad.current = false;
+      return;
+    }
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
       return;
     }
     if (synced === "online") {
